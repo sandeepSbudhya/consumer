@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "intelligenceplane-smartscheduler"
+version = "2023.0.1"
+dependencies = [
+
+]
+
+requires-python ">=3.11"
+
+authors = [
+    {name = "Sandeep Satish Budhya", email="budhya.1@buckeyemail.osu.edu"}
+]
+description =   "This is the Intelligence Plane component of the ICICLE Smart Scheduler.
+                It consists of a Kafka Consumer which processes model performance messages
+                and a Flask Server which accepts requests to execute a job"
+
+readme = "README.md"
+
+[project.scripts]
