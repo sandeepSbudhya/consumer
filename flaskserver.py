@@ -1,8 +1,11 @@
 import IntelligencePlaneKafkaConsumer.IPConsumer as IPConsumer
 from flask import Flask
-import datetime, os
+import datetime, os, time
 import json
 from threading import Thread
+from flask import request
+
+
 app = Flask(__name__)
 
 @app.route("/", methods = ['GET'])
@@ -11,13 +14,19 @@ def getInfo():
 
 @app.route("/schedulejob", methods=['POST'])
 def scheduleJob():
+    userId = request.json["userId"]
     curtimestring = str(datetime.datetime.now())
     serverdir = str(os.getcwd())
     pidfile = str(os.path.join(serverdir,'pidfiles/pidfile'+curtimestring+'.pid'))
     consumerfile = str(os.path.join(serverdir, 'consumerfiles/consumerfile'+curtimestring))
     print("pidfile: ",pidfile)
     print("consumerfile: ", consumerfile)
-    ipkc = IPConsumer.IPConsumer(['localhost:9092'], 'performance-messages', pidfile, consumerfile)
+    try:
+        ipkc = IPConsumer.IPConsumer(['localhost:9092'], 'performance-messages', pidfile, consumerfile, userId)
+    except Exception as e:
+        print(str(e))
+        return "<!doctype html><title>error</title><h1>Error initializing kafka server</h1>"
+
     t = Thread(target=ipkc.start)
     t.daemon = True
     t.start()
