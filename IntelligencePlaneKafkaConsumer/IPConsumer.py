@@ -1,9 +1,10 @@
 from kafka import KafkaConsumer
-import json
 from .daemon_base import daemon
-import datetime, sys, time
-from threading import Thread
+import datetime, os, logging, json
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/log'+str(datetime.datetime.now()))))
 
 '''
 Create a consumer to consume messages as a daemon process which terminates when its
@@ -14,55 +15,44 @@ class IPConsumer(daemon):
     '''
     initialize the consumer with kafka server (broker), topic and client_id to help filter in the kafka server (broker)
     '''
-    def __init__(self, bootstrap_servers, topic, pidfile, consumerfile, userId):
-        self.userId = userId
+    def __init__(self, bootstrap_servers, topic, pidfile, consumerfile, jobId):
+        self.jobId = jobId
         self.consumerfile = consumerfile
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
 
-        print("kafka variables: \n")
-        print("bootstrap servers: ", bootstrap_servers)
-        print("topic: ", topic)
-        print("client: ", userId)
+        logger.info("kafka variables: ")
+        logger.info("bootstrap servers: %s", str(bootstrap_servers))
+        logger.info("topic: %s", str(topic))
+        logger.info("job id: %s", str(self.jobId))
 
         super().__init__(pidfile=pidfile)
         try:
-            self.perfomance_message_consumer = KafkaConsumer(
+            self.kafka_message_consumer = KafkaConsumer(
                 self.topic,
                 bootstrap_servers = self.bootstrap_servers,
                 value_deserializer = lambda m: json.loads(m.decode('ascii'))
             )
-            self.stop_messages_consumer = KafkaConsumer(
-                'stop-messages',
-                bootstrap_servers = self.bootstrap_servers,
-                value_deserializer = lambda m: json.loads(m.decode('ascii'))
-            )
         except Exception as e:
+            logger.error(str(e)+'\nerror initializing kafka topics')
             raise Exception('initialization failed')
-        print("kafka initialized...")
+        logger.info("kafka initialized...")
 
-    def listen_to_stop_messages(self):
-        for message in self.stop_messages_consumer:
-            if str(message.value["userId"]) == str(self.userId):
-                break
-
-    def listen_to_performance_messages(self, file):
-        for message in self.perfomance_message_consumer:
-            if str(message.value["userId"]) == str(self.userId):
+    def consume_messages(self):
+        for message in self.kafka_message_consumer:
+            if str(message.value["jobId"]) == str(self.jobId):
                 try:
-                    file.write(str(message.value)+'\n')
+                    #We can process messages and discard them. File writing is just a placeholder.
+                    with open(self.consumerfile, "a") as file:
+                        file.write(str(message.value)+'\n')
+                        file.close()
                 except Exception as e:
+                    logger.error(str(e)+'\nerror opening the file, job maybe terminated')
                     break
+
     '''
     This is a method from the daemon boilerplate class overriden to consume messages
     '''
     def run(self):
-        t1 = Thread(target=self.listen_to_stop_messages)
-        t1.start()
-        file = open(self.consumerfile, "w+")
-        t2 = Thread(target=self.listen_to_performance_messages, kwargs={'file':file})
-        t2.start()
-        while t1.is_alive():
-            time.sleep(0.1)
-        file.close()
-        self.stop()
+        logger.info('new consumer job launched')
+        self.consume_messages()

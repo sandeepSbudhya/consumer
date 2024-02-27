@@ -1,6 +1,9 @@
 """Generic linux daemon base class for python 3.x."""
 
-import sys, os, time, atexit, signal
+import sys, os, time, atexit, signal, logging, datetime
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/daemonlog'+str(datetime.datetime.now()))))
 
 class daemon:
 	"""A generic daemon class.
@@ -12,14 +15,14 @@ class daemon:
 	
 	def daemonize(self):
 		"""Deamonize class. UNIX double fork mechanism."""
-
+		logger.info('initializing daemon...')
 		try: 
 			pid = os.fork() 
 			if pid > 0:
 				# exit first parent
 				sys.exit(0) 
-		except OSError as err: 
-			sys.stderr.write('fork #1 failed: {0}\n'.format(err))
+		except OSError as err:
+			logger.error('fork #1 failed')
 			sys.exit(1)
 	
 		# decouple from parent environment
@@ -35,24 +38,14 @@ class daemon:
 				# exit from second parent
 				sys.exit(0) 
 		except OSError as err: 
-			sys.stderr.write('fork #2 failed: {0}\n'.format(err))
+			logger.error('fork #2 failed')
 			sys.exit(1) 
-	
-		# redirect standard file descriptors
-		sys.stdout.flush()
-		sys.stderr.flush()
-		si = open(os.devnull, 'r')
-		so = open(os.devnull, 'a+')
-		se = open(os.devnull, 'a+')
-
-		os.dup2(si.fileno(), sys.stdin.fileno())
-		os.dup2(so.fileno(), sys.stdout.fileno())
-		os.dup2(se.fileno(), sys.stderr.fileno())
 	
 		# write pidfile
 		atexit.register(self.delpid)
 
 		pid = str(os.getpid())
+		logger.info('daemon pid: %s', pid)
 		with open(self.pidfile,'w+') as f:
 			f.write(pid + '\n')
 	
@@ -61,7 +54,7 @@ class daemon:
 
 	def start(self):
 		"""Start the daemon."""
-
+		logger.info('starting daemon...')
 		# Check for a pidfile to see if the daemon already runs
 		try:
 			with open(self.pidfile,'r') as pf:
@@ -73,7 +66,7 @@ class daemon:
 		if pid:
 			message = "pidfile {0} already exist. " + \
 					"Daemon already running?\n"
-			sys.stderr.write(message.format(self.pidfile))
+			logger.error(message)
 			sys.exit(1)
 		
 		# Start the daemon
@@ -81,6 +74,7 @@ class daemon:
 		self.run()
 
 	def stop(self):
+		logger.info('stopping daemon...')
 		"""Stop the daemon."""
 
 		# Get the pid from the pidfile
@@ -93,7 +87,7 @@ class daemon:
 		if not pid:
 			message = "pidfile {0} does not exist. " + \
 					"Daemon not running?\n"
-			sys.stderr.write(message.format(self.pidfile))
+			logger.error(message)
 			return # not an error in a restart
 
 		# Try killing the daemon process	
@@ -107,10 +101,11 @@ class daemon:
 				if os.path.exists(self.pidfile):
 					os.remove(self.pidfile)
 			else:
-				print (str(err.args))
+				logger.error(str(err.args))
 				sys.exit(1)
 
 	def restart(self):
+		logger.info('restarting daemon...')
 		"""Restart the daemon."""
 		self.stop()
 		self.start()
