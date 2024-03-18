@@ -1,5 +1,5 @@
-serverlogs
-consumerfiles
-pidfiles
+serverlogs/*
+consumerfiles/*
+pidfiles/*
 IntelligencePlaneKafkaConsumer/logs
 IntelligencePlaneKafkaConsumer/__pycache__

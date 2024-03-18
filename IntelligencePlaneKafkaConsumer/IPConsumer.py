@@ -25,6 +25,7 @@ class IPConsumer(daemon):
         logger.info("bootstrap servers: %s", str(bootstrap_servers))
         logger.info("topic: %s", str(topic))
         logger.info("job id: %s", str(self.jobId))
+        logger.info("writing into %s", str(self.consumerfile))
 
         super().__init__(pidfile=pidfile)
         try:
