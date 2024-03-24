@@ -11,7 +11,7 @@ serverdir = str(os.getcwd())
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.addHandler(logging.FileHandler(os.path.join(serverdir, 'serverlogs/log'+str(datetime.datetime.now()))))
+logger.addHandler(logging.FileHandler(os.path.join(serverdir, 'serverlogs/serverlog-'+str(datetime.datetime.now()))))
 
 mutex = Lock()
 counter = 0
@@ -47,12 +47,28 @@ def scheduleJob():
     logger.info("pidfile: %s",pidfile)
     logger.info("consumerfile: %s", consumerfile)
 
+    #check if similar app has been profiled
+
+    #call profiler
+
+    #run harp build execution plan
+
+    #submit job through tapis
+    t = Tapis(base_url= "https://tacc.tapis.io",
+          username="sandeepsbudhya",
+          password="TaccPwd123@")
+
+    t.get_tokens()
+
+    access_token = t.access_token.access_token
+
     # Assume the above below lines means a job got submitted through tapis
     with mutex:
         global counter
         counter = counter + 1
         jobId = counter
 
+    #launch intelligence plane kafka consumer
     try:
         ipkc = IPConsumer.IPConsumer(bootstrap_servers=['localhost:9092'], topic=topic, pidfile=pidfile, consumerfile=consumerfile, jobId=jobId)
     except Exception as e:

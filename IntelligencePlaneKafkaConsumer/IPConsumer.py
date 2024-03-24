@@ -4,7 +4,7 @@ import datetime, os, logging, json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/log'+str(datetime.datetime.now()))))
+logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/IPlog-'+str(datetime.datetime.now()))))
 
 '''
 Create a consumer to consume messages as a daemon process which terminates when its

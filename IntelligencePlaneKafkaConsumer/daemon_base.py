@@ -3,7 +3,7 @@
 import sys, os, time, atexit, signal, logging, datetime
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/daemonlog'+str(datetime.datetime.now()))))
+logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/daemonlog-'+str(datetime.datetime.now()))))
 
 class daemon:
 	"""A generic daemon class.
