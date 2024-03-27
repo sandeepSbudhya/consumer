@@ -4,7 +4,7 @@ import datetime, os, logging, json
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/IPlog-'+str(datetime.datetime.now()))))
+logger.addHandler(logging.FileHandler(os.path.join(str(os.getcwd()), 'IntelligencePlaneKafkaConsumer/logs/ipconsumerlogs/iplog-'+str(datetime.datetime.now()))))
 
 '''
 Create a consumer to consume messages as a daemon process which terminates when its
@@ -14,9 +14,14 @@ class IPConsumer(daemon):
 
     '''
     initialize the consumer with kafka server (broker), topic and client_id to help filter in the kafka server (broker)
+    bootstrap_servers: Array[String]    String:kafka broker     ip address of the kafka broker
+    topic: String       the topic to subscribe to
+    pidfile: String     stringified directory of file to hold the process id of the daemon
+    consumerfile: String    stringified directory of file to write consumed data
+    job_id: Integer      ID to filter messages from broker
     '''
-    def __init__(self, bootstrap_servers, topic, pidfile, consumerfile, jobId):
-        self.jobId = jobId
+    def __init__(self, bootstrap_servers, topic, pidfile, consumerfile, job_id):
+        self.job_id = job_id
         self.consumerfile = consumerfile
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
@@ -24,7 +29,7 @@ class IPConsumer(daemon):
         logger.info("kafka variables: ")
         logger.info("bootstrap servers: %s", str(bootstrap_servers))
         logger.info("topic: %s", str(topic))
-        logger.info("job id: %s", str(self.jobId))
+        logger.info("job id: %s", str(self.job_id))
         logger.info("writing into %s", str(self.consumerfile))
 
         super().__init__(pidfile=pidfile)
@@ -39,9 +44,12 @@ class IPConsumer(daemon):
             raise Exception('initialization failed')
         logger.info("kafka initialized...")
 
+    '''
+    method to launch kafka consumer to listen to messages of the topic
+    '''
     def consume_messages(self):
         for message in self.kafka_message_consumer:
-            if str(message.value["jobId"]) == str(self.jobId):
+            if str(message.value["jobId"]) == str(self.job_id):
                 try:
                     #We can process messages and discard them. File writing is just a placeholder.
                     with open(self.consumerfile, "a") as file:
@@ -52,8 +60,9 @@ class IPConsumer(daemon):
                     break
 
     '''
-    This is a method from the daemon boilerplate class overriden to consume messages
+    Consume messages
     '''
     def run(self):
         logger.info('new consumer job launched')
         self.consume_messages()
+        self.stop()
