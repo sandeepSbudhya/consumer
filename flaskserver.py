@@ -1,5 +1,4 @@
 import IntelligencePlaneKafkaConsumer.IPConsumer as IPConsumer
-import IntelligencePlaneKafkaConsumer.LaunchProfiler as LaunchProfiler
 import datetime, os, time, json, logging
 from tapipy.tapis import Tapis
 from flask import Flask
