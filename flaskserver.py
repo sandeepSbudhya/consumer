@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.FileHandler(os.path.join(server_dir, 'serverlogs/serverlog-'+str(datetime.datetime.now()))))
 
-tapis_job_mutex = Lock()
-tapis_job_id_generator = 0
+internal_job_id_mutex = Lock()
+internal_job_id_generator = 0
 
 #This holds all the active consumers
 consumer_instances = {}
@@ -38,80 +38,135 @@ def scheduleJob():
         appDetails = request.json["appDetails"]
     except Exception as e:
         logger.error('wrong format of request to schedule job message')
-        return jsonify({"message":"To schedule a job provide a user id and the topic of messages to subscribe to"})
+        return (jsonify(
+                {
+                    "result":{
+                        "message":"To schedule a job provide the topic of messages to subscribe to and details of the app to profiled/executed"
+                    }
+                }
+            ), 400)
     
     curtimestring = str(datetime.datetime.now())
     pidfile = str(os.path.join(server_dir,'pidfiles/pidfile'+curtimestring+'.pid'))
     
-    job_id = None
+    internal_job_id = None
 
     logger.info("pidfile: %s",pidfile)
 
     #check if similar app has been profiled maybe a DB call
+    profiled_job_details = {}
     has_been_profiled=True
-    profiled_app_details = {
-        "name" : "dummy profiled app",
-        "description" : "dummy profiled app description",
-        "appId" : "sandeepsbudhya-test-app",
-        "appVersion" : "0.1"
+
+    #get job details from HARP
+    profiled_job_details = {
+        "name" : "mock profiled job",
+        "description" : "mocked profiled app that pings kafka broker",
+        "appId" : "sandeepsbudhya-ping-kafka-app",
+        "appVersion" : "0.0.1"
     }
 
-    # #submit job through tapis
     consumerfile = str(os.path.join(server_dir, 'consumerfiles/consumerfile'+curtimestring))
     logger.info("consumerfile: %s", consumerfile)
+
+    #get tapis access token
     t = Tapis(base_url= "https://tacc.tapis.io",
           username="sandeepsbudhya",
           password="TaccPwd123@")
 
     t.get_tokens()
-    tjid = None
+
+    #submit job via tapis and generate tapis job id
+    tapis_job_id = None
     try:
-        job_submitted_response = t.jobs.submitJob(   name=profiled_app_details['name'], appId=profiled_app_details['appId'],
-                        description=profiled_app_details['description'], appVersion=profiled_app_details['appVersion'])
-        tjid = job_submitted_response.uuid
+        job_submitted_response = t.jobs.submitJob(
+            name=profiled_job_details['name'],
+            appId=profiled_job_details['appId'],
+            description=profiled_job_details['description'],
+            appVersion=profiled_job_details['appVersion']
+        )
+        tapis_job_id = job_submitted_response.uuid
+
     except Exception as e:
         logger.error('could not submit job error %s', e)
-        return jsonify({"message":"profiled job could not be submitted with error "+str(e)})
+        return (jsonify(
+                {
+                    "result":{
+                        "message":"profiled job could not be submitted with error "+str(e)+". There could be an issue with internal tapis credentials."
+                    }
+                }
+            ), 500)
 
-    # Assume the above below lines means a job got submitted through tapis
-    with tapis_job_mutex:
-        global tapis_job_id_generator
-        tapis_job_id_generator = tapis_job_id_generator + 1
-        job_id = tapis_job_id_generator
+    #generate internal job id
+    with internal_job_id_mutex:
+        global internal_job_id_generator
+        internal_job_id_generator = internal_job_id_generator + 1
+        internal_job_id = internal_job_id_generator
 
     #init intelligence plane kafka consumer
     try:
-        ip_consumer = IPConsumer.IPConsumer(bootstrap_servers=['localhost:9092'], topic=topic, pidfile=pidfile, consumerfile=consumerfile, job_id=job_id)
+        ip_consumer = IPConsumer.IPConsumer(bootstrap_servers=['localhost:9092'], topic=topic, pidfile=pidfile, consumerfile=consumerfile, internal_job_id=internal_job_id)
     except Exception as e:
         logger.error(str(e)+'\nerror initializing kafka')
-        return jsonify({"message":"error in initializing kafka server"})
+        return jsonify(
+            {
+                "result":{
+                    "message":"error in initializing kafka server. Does the topic exist?"
+                }
+            }, 500)
 
     global consumer_instances
-    consumer_instances[job_id] = ip_consumer
+    consumer_instances[internal_job_id] = ip_consumer
 
-    t = Thread(target=ip_consumer.start)
-    t.daemon = True
+    ipc_thread = Thread(target=ip_consumer.start)
+    ipc_thread.daemon = True
     try:
-        t.start()
-        logger.info('job %s started succesfully', str(job_id))
-        return jsonify({"message":"successfully submitted job with job id: "+str(job_id)})
+        ipc_thread.start()
+        logger.info('job %s started succesfully', str(internal_job_id))
+        return (jsonify(
+                {
+                    "result":{
+                        "message":"successfully submitted",
+                        "internalJobId":str(internal_job_id),
+                        "tapisJobId":str(tapis_job_id)
+                    }
+                }
+            ), 201)
+
     except Exception as e:
         logger.error(str(e)+'\nerror starting job')
-        del consumer_instances[job_id]
-        return jsonify({"message":"job could not be start successfully"})
+        del consumer_instances[internal_job_id]
+        return (jsonify(
+                {
+                    "result":{
+                        "message":"job could not be start successfully"
+                    }
+                }
+            ), 400)
 
 @app.route("/stopjob", methods=['POST'])
 def stopjob():
-    job_id = request.json["jobId"]
+    internal_job_id = request.json["internalJobId"]
     try:
         global consumer_instances
-        consumer_instances[job_id].stop()
-        del consumer_instances[job_id]
-        logger.info('job %s ended successfully', str(job_id))
-        return jsonify({"message":"successfully stopped job with job id: "+str(job_id)})
+        consumer_instances[internal_job_id].stop()
+        del consumer_instances[internal_job_id]
+        logger.info('job %s ended successfully', str(internal_job_id))
+        return (jsonify(
+                {
+                    "result":{
+                        "message":"successfully stopped job with job id: "+str(internal_job_id)
+                    }
+                }
+            ), 204)
     except Exception as e:
         logger.error(str(e)+'\njob may not exist')
-        return jsonify({"message":"error stopping the job with job id: "+str(job_id)+" has it already stopped?"})
+        return (jsonify(
+                {
+                    "result":{
+                        "message":"error stopping the job with job id: "+str(internal_job_id)+" has it already stopped?"
+                    }
+                }
+            ), 400)
 
 if __name__ == "__main__":
     app.run(port=8088)

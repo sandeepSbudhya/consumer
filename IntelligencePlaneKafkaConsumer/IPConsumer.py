@@ -18,10 +18,10 @@ class IPConsumer(daemon):
     topic: String       the topic to subscribe to
     pidfile: String     stringified directory of file to hold the process id of the daemon
     consumerfile: String    stringified directory of file to write consumed data
-    job_id: Integer      ID to filter messages from broker
+    internal_job_id: Integer      ID to filter messages from broker
     '''
-    def __init__(self, bootstrap_servers, topic, pidfile, consumerfile, job_id):
-        self.job_id = job_id
+    def __init__(self, bootstrap_servers, topic, pidfile, consumerfile, internal_job_id):
+        self.internal_job_id = internal_job_id
         self.consumerfile = consumerfile
         self.bootstrap_servers = bootstrap_servers
         self.topic = topic
@@ -29,7 +29,7 @@ class IPConsumer(daemon):
         logger.info("kafka variables: ")
         logger.info("bootstrap servers: %s", str(bootstrap_servers))
         logger.info("topic: %s", str(topic))
-        logger.info("job id: %s", str(self.job_id))
+        logger.info("job id: %s", str(self.internal_job_id))
         logger.info("writing into %s", str(self.consumerfile))
 
         super().__init__(pidfile=pidfile)
@@ -49,7 +49,7 @@ class IPConsumer(daemon):
     '''
     def consume_messages(self):
         for message in self.kafka_message_consumer:
-            if str(message.value["jobId"]) == str(self.job_id):
+            if str(message.value["jobId"]) == str(self.internal_job_id):
                 try:
                     #We can process messages and discard them. File writing is just a placeholder.
                     with open(self.consumerfile, "a") as file:

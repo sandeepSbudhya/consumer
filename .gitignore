@@ -1,7 +1,5 @@
 serverlogs/*
 consumerfiles/*
 pidfiles/*
-IntelligencePlaneKafkaConsumer/logs/daemonlogs/*
-IntelligencePlaneKafkaConsumer/logs/ipconsumerlogs/*
 IntelligencePlaneKafkaConsumer/__pycache__
 script.py
