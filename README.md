@@ -19,7 +19,7 @@ http://localhost:5000 This is the port that the flask server application's contr
 ### Endpoints
 http://localhost:5000/schedulejob<br/>
 
- 1. Send a **POST** message to  this endpoint  with json body:<br/>{<br/>&emsp;"topic":"\<performance-messages\> or \<progress-messages\>",<br/>&emsp;"appDetails":{<br/>&emsp;&emsp;"id":"my-tapis-app",<br/>
+ 1. Send a **POST** message to  this endpoint  with json body:<br/>{<br/>&emsp;"topic":"performance-messages" or "progress-messages",<br/>&emsp;"appDetails":{<br/>&emsp;&emsp;"id":"my-tapis-app",<br/>
 &emsp;&emsp;"version":"0.1",<br/>
 &emsp;&emsp;"description":"My sample application",<br/>
 &emsp;&emsp;"runtime":"DOCKER",<br/>
