@@ -1,5 +1,1 @@
-serverlogs/*
-consumerfiles/*
-pidfiles/*
 IntelligencePlaneKafkaConsumer/__pycache__
-script.py

@@ -14,9 +14,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.FileHandler(os.path.join(server_dir, 'serverlogs/serverlog-'+str(datetime.datetime.now()))))
 
-internal_job_id_mutex = Lock()
-internal_job_id_generator = 0
-
 #This holds all the active consumers
 consumer_instances = {}
 
@@ -49,7 +46,6 @@ def scheduleJob():
     curtimestring = str(datetime.datetime.now())
     pidfile = str(os.path.join(server_dir,'pidfiles/pidfile'+curtimestring+'.pid'))
     
-    internal_job_id = None
 
     logger.info("pidfile: %s",pidfile)
 
@@ -60,9 +56,23 @@ def scheduleJob():
     #get job details from HARP
     profiled_job_details = {
         "name" : "mock profiled job",
-        "description" : "mocked profiled app that pings kafka broker",
-        "appId" : "sandeepsbudhya-ping-kafka-app",
-        "appVersion" : "0.0.1"
+        "description" : "mock profiled job that pings kafka broker",
+        "appId" : "sandeepsbudhya-curl-to-kafka-server-app",
+        "appVersion" : "0.0.1",
+        "parameterSet" : {
+            "appArgs" : [
+                {
+                    "name" : "kafka broker public url",
+                    "include" : True,
+                    "arg" : "https://efa1-2603-6010-c7f0-7780-00-1434.ngrok-free.app"
+                },
+                {
+                    "name" : "type of message to send",
+                    "include" : True,
+                    "arg" : "performance" if topic == "performance-messages" else "progress"
+                }
+            ]
+        }
     }
 
     consumerfile = str(os.path.join(server_dir, 'consumerfiles/consumerfile'+curtimestring))
@@ -82,7 +92,8 @@ def scheduleJob():
             name=profiled_job_details['name'],
             appId=profiled_job_details['appId'],
             description=profiled_job_details['description'],
-            appVersion=profiled_job_details['appVersion']
+            appVersion=profiled_job_details['appVersion'],
+            parameterSet=profiled_job_details['parameterSet']
         )
         tapis_job_id = job_submitted_response.uuid
 
@@ -96,15 +107,9 @@ def scheduleJob():
                 }
             ), 500)
 
-    #generate internal job id
-    with internal_job_id_mutex:
-        global internal_job_id_generator
-        internal_job_id_generator = internal_job_id_generator + 1
-        internal_job_id = internal_job_id_generator
-
     #init intelligence plane kafka consumer
     try:
-        ip_consumer = IPConsumer.IPConsumer(bootstrap_servers=['localhost:9092'], topic=topic, pidfile=pidfile, consumerfile=consumerfile, internal_job_id=internal_job_id)
+        ip_consumer = IPConsumer.IPConsumer(bootstrap_servers=['localhost:9092'], topic=topic, pidfile=pidfile, consumerfile=consumerfile, tapis_job_id=tapis_job_id)
     except Exception as e:
         logger.error(str(e)+'\nerror initializing kafka')
         return jsonify(
@@ -115,26 +120,26 @@ def scheduleJob():
             }, 500)
 
     global consumer_instances
-    consumer_instances[internal_job_id] = ip_consumer
+    consumer_instances[tapis_job_id] = ip_consumer
 
     ipc_thread = Thread(target=ip_consumer.start)
     ipc_thread.daemon = True
     try:
         ipc_thread.start()
-        logger.info('job %s started succesfully', str(internal_job_id))
+        logger.info('job %s started succesfully', str(tapis_job_id))
         return (jsonify(
                 {
                     "result":{
                         "message":"successfully submitted",
-                        "internalJobId":str(internal_job_id),
-                        "tapisJobId":str(tapis_job_id)
+                        "tapisJobId":str(tapis_job_id),
+                        "accessToken" : str(t.access_token.access_token)
                     }
                 }
             ), 201)
 
     except Exception as e:
         logger.error(str(e)+'\nerror starting job')
-        del consumer_instances[internal_job_id]
+        del consumer_instances[tapis_job_id]
         return (jsonify(
                 {
                     "result":{
@@ -145,25 +150,25 @@ def scheduleJob():
 
 @app.route("/stopjob", methods=['POST'])
 def stopjob():
-    internal_job_id = request.json["internalJobId"]
+    tapis_job_id = request.json["tapisJobId"]
     try:
         global consumer_instances
-        consumer_instances[internal_job_id].stop()
-        del consumer_instances[internal_job_id]
-        logger.info('job %s ended successfully', str(internal_job_id))
+        consumer_instances[tapis_job_id].stop()
+        del consumer_instances[tapis_job_id]
+        logger.info('job %s ended successfully', str(tapis_job_id))
         return (jsonify(
                 {
                     "result":{
-                        "message":"successfully stopped job with job id: "+str(internal_job_id)
+                        "message":"successfully stopped job with job id: "+str(tapis_job_id)
                     }
                 }
-            ), 204)
+            ), 200)
     except Exception as e:
         logger.error(str(e)+'\njob may not exist')
         return (jsonify(
                 {
                     "result":{
-                        "message":"error stopping the job with job id: "+str(internal_job_id)+" has it already stopped?"
+                        "message":"error stopping the job with job id: "+str(tapis_job_id)+" has it already stopped?"
                     }
                 }
             ), 400)
