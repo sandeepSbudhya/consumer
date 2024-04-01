@@ -1,3 +1,4 @@
+
 # Intelligence Plane Flask Kafka message system
 
 Flask + Kafka project to demonstrate intelligence plane communication.
@@ -29,5 +30,7 @@ http://localhost:5000/schedulejob<br/>
 &emsp;&emsp;&emsp;"description":  "some job description"<br/>
 &emsp;&emsp;}<br/>&emsp;}<br/>}<br/><br/>to listen to messages from the job for that particular topic. The response will be a **success** message as well as an **access token** and a **tapis job ID**. This starts a daemon process which connects to the **kafka** server and filters the consumed messages by the appropriate **tapis job ID**.<br/> <br/>These filtered messages are written to file and are available in:<br/><br/> *root*/consumerfiles/\<timestamped consumer file\>
 
- 2. Send **POST** message to the following url with json body as shown along with the **correct** **tapis job ID** to kill the listener and stop the daemon process.<br/>http://localhost:5000/stopjob<br/>{
+ 2. Send **POST** message to the following url with json body as shown along with the **correct** **tapis job ID** to kill the listener and stop the daemon process.<br/>http://localhost:5000/stopjob<br/>{<br/>
 &emsp;"tapisJobId"  :  "\<the tapis job id from the response after scheduling the job\>",<br/>}<br/><br/>
+
+
