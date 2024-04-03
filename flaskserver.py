@@ -55,16 +55,16 @@ def scheduleJob():
 
     #get job details from HARP
     profiled_job_details = {
-        "name" : "mock profiled job",
-        "description" : "mock profiled job that pings kafka broker",
-        "appId" : "sandeepsbudhya-curl-to-kafka-server-app",
-        "appVersion" : "0.0.1",
+        "name" : "",
+        "description" : "",
+        "appId" : "",
+        "appVersion" : "",
         "parameterSet" : {
             "appArgs" : [
                 {
                     "name" : "kafka broker public url",
                     "include" : True,
-                    "arg" : "https://efa1-2603-6010-c7f0-7780-00-1434.ngrok-free.app"
+                    "arg" : ""
                 },
                 {
                     "name" : "type of message to send",
@@ -79,9 +79,9 @@ def scheduleJob():
     logger.info("consumerfile: %s", consumerfile)
 
     #get tapis access token
-    t = Tapis(base_url= "https://tacc.tapis.io",
-          username="sandeepsbudhya",
-          password="TaccPwd123@")
+    t = Tapis(base_url= "",
+          username="",
+          password="")
 
     t.get_tokens()
 
@@ -109,7 +109,7 @@ def scheduleJob():
 
     #init intelligence plane kafka consumer
     try:
-        ip_consumer = IPConsumer.IPConsumer(bootstrap_servers=['localhost:9092'], topic=topic, pidfile=pidfile, consumerfile=consumerfile, tapis_job_id=tapis_job_id)
+        ip_consumer = IPConsumer.IPConsumer(bootstrap_servers=[''], topic=topic, pidfile=pidfile, consumerfile=consumerfile, tapis_job_id=tapis_job_id)
     except Exception as e:
         logger.error(str(e)+'\nerror initializing kafka')
         return jsonify(

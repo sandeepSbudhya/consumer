@@ -1,0 +1,19 @@
+{
+    "id": "<set name of the app here>",
+    "version": "0.0.1",
+    "description": "mock profiled app that pings kafka broker",
+    "enabled": true,
+    "runtime": "SINGULARITY",
+    "runtimeOptions": [
+        "SINGULARITY_RUN"
+    ],
+    "containerImage": "docker://gwynbleidd27/mocktrainingjob:latest",
+    "jobType": "BATCH",
+    "maxJobs": 5,
+    "maxJobsPerUser": 5,
+    "jobAttributes": {
+        "description": "mock profiled app that pings kafka broker",
+        "execSystemId": "<name of the system you created>",
+        "nodeCount": 3
+    }
+}

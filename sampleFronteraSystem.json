@@ -1,0 +1,41 @@
+{
+    "id": "<set your system id here",
+    "description": "Frontera public",
+    "systemType": "LINUX",
+    "host": "frontera.tacc.utexas.edu",
+    "enabled": true,
+    "effectiveUserId": "<set your user id here>",
+    "defaultAuthnMethod": "PKI_KEYS",
+    "rootDir": "/",
+    "port": 22,
+    "useProxy": false,
+    "canExec": true,
+    "mpiCmd": "string",
+    "jobRuntimes": [
+        {
+            "runtimeType": "SINGULARITY"
+        }
+    ],
+    "jobWorkingDir": "HOST_EVAL($SCRATCH)",
+    "jobMaxJobs": 5,
+    "jobMaxJobsPerUser": 5,
+  	"canRunBatch": true,
+  	"batchScheduler": "SLURM",
+  	"batchSchedulerProfile": "tacc",
+    "batchDefaultLogicalQueue": "normal",
+    "batchLogicalQueues": [
+        {
+		    "name": "normal",
+            "hpcQueueName": "normal",
+            "maxJobsPerUser": 5,
+            "minNodeCount": 3,
+            "maxNodeCount": 16,
+            "minCoresPerNode": 1,
+            "maxCoresPerNode": 68,
+		    "minMemoryMB": 1,
+		    "maxMemoryMB": 16384,
+		    "minMinutes": 1,
+		    "maxMinutes": 20
+		}
+    ]
+}
