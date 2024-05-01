@@ -34,9 +34,9 @@ class daemon:
 		try: 
 			pid = os.fork() 
 			if pid > 0:
-
 				# exit from second parent
-				sys.exit(0) 
+				sys.exit(0)
+				
 		except OSError as err: 
 			logger.error('fork #2 failed')
 			sys.exit(1) 
@@ -58,8 +58,8 @@ class daemon:
 		# Check for a pidfile to see if the daemon already runs
 		try:
 			with open(self.pidfile,'r') as pf:
-
 				pid = int(pf.read().strip())
+
 		except IOError:
 			pid = None
 	
@@ -93,6 +93,7 @@ class daemon:
 		# Try killing the daemon process	
 		try:
 			while 1:
+				logger.info('trying to kill process with pid %s',str(pid))
 				os.kill(pid, signal.SIGTERM)
 				time.sleep(0.1)
 		except OSError as err:
@@ -100,15 +101,10 @@ class daemon:
 			if e.find("No such process") > 0:
 				if os.path.exists(self.pidfile):
 					os.remove(self.pidfile)
+					logger.info('daemon stopped successfully')
 			else:
 				logger.error(str(err.args))
 				sys.exit(1)
-
-	def restart(self):
-		logger.info('restarting daemon...')
-		"""Restart the daemon."""
-		self.stop()
-		self.start()
 
 	def run(self):
 		"""You should override this method when you subclass Daemon.
